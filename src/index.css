@@ -1053,3 +1053,240 @@ tr.main-row:hover .expand-btn {
   font-size: 15px;
   opacity: 0.5;
 }
+
+/* ── Pill Buttons ───────────────────────────────────────────────────────── */
+.pill button.pill-plan-btn, .pill button.pill-focus-btn {
+  margin-left: 0;
+  padding: 0 4px;
+}
+.pill button.pill-remove-btn {
+  margin-left: 0;
+}
+
+/* ── AA Planner Modal ───────────────────────────────────────────────────── */
+.planner-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.planner-body {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.planner-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.add-aa-btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-aa-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.planner-hint {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.6;
+}
+
+.planner-aa-list {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 100px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.planner-empty {
+  padding: 30px;
+  text-align: center;
+  color: var(--text);
+  opacity: 0.5;
+  font-size: 13px;
+}
+
+.planner-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.planner-row:last-child {
+  border-bottom: none;
+}
+
+.planner-row-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planner-row-name {
+  font-weight: 600;
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.planner-row-class {
+  font-size: 12px;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.planner-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.planner-row-controls label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.planner-row-controls input {
+  width: 50px;
+  background: #0b0f14;
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  padding: 4px;
+  border-radius: 4px;
+  text-align: center;
+  font-family: inherit;
+}
+
+.planner-del-btn {
+  background: transparent;
+  color: var(--text);
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.planner-del-btn:hover {
+  color: #ef4444;
+}
+
+.planner-summary {
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.planner-summary h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planner-empty-hint {
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.6;
+}
+
+.planner-tome-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.planner-tome-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.planner-tome-qty {
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+/* ── Planner Table Integration ──────────────────────────────────────────── */
+.planner-focus-banner {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-h);
+}
+
+.planner-focus-banner span {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.planner-focus-banner button {
+  margin-left: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.planner-focus-banner button:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.qty-plain.needed-qty {
+  color: var(--text-h);
+  font-weight: bold;
+}
+
+.qty-plain.text-green {
+  color: #4ade80;
+}
+
+.qty-plain.deficit-qty {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  padding: 2px 6px;
+  border-radius: 4px;
+}

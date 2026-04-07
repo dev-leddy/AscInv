@@ -285,6 +285,163 @@ function AAPickerModal({ abilities, selectedAAs, onToggleAA, onClose, lastSynced
   )
 }
 
+// ── Character Planner Modal ──────────────────────────────────────────────────
+function CharacterPlannerModal({
+  characterName, aaPlans, setAaPlans, aaAbilities, aaLoading, fetchAndCacheAAs, aaLastSynced, onClose
+}) {
+  const [showPicker, setShowPicker] = useState(false)
+
+  // Open the picker
+  const handleOpenPicker = async () => {
+    if (aaAbilities.length === 0) await fetchAndCacheAAs()
+    setShowPicker(true)
+  }
+
+  // The character's current plan: { [universalId]: { [className]: points } }
+  const plan = aaPlans[characterName] || {}
+  const planIds = new Set(Object.keys(plan).map(Number))
+
+  // When AAPickerModal toggles an AA
+  const handleToggleAA = (ability) => {
+    setAaPlans(prev => {
+      const charPlan = prev[characterName] || {}
+      if (charPlan[ability.universalId]) {
+        // Remove it
+        const newPlan = { ...charPlan }
+        delete newPlan[ability.universalId]
+        return { ...prev, [characterName]: newPlan }
+      } else {
+        // Add it with default points for each class
+        const classRanks = {}
+        ability.originalClassNames.forEach(c => classRanks[c] = ability.totalCost)
+        return { ...prev, [characterName]: { ...charPlan, [ability.universalId]: classRanks } }
+      }
+    })
+  }
+
+  // Handle points change
+  const handleChangePoints = (universalId, className, points) => {
+    setAaPlans(prev => {
+      const charPlan = prev[characterName] || {}
+      const abilityPlan = charPlan[universalId] || {}
+      return {
+        ...prev,
+        [characterName]: {
+          ...charPlan,
+          [universalId]: { ...abilityPlan, [className]: points }
+        }
+      }
+    })
+  }
+
+  // Handle row deletion
+  const handleDeleteClassRow = (universalId, className) => {
+    setAaPlans(prev => {
+      const charPlan = { ...(prev[characterName] || {}) }
+      const abilityPlan = { ...(charPlan[universalId] || {}) }
+      delete abilityPlan[className]
+
+      // If no more classes for this AA, remove the AA entirely
+      if (Object.keys(abilityPlan).length === 0) {
+        delete charPlan[universalId]
+      } else {
+        charPlan[universalId] = abilityPlan
+      }
+      return { ...prev, [characterName]: charPlan }
+    })
+  }
+
+  // Build a lookup: universalId → set of tome keys "Grade|ClassName"
+  const aaToTomeKeys = useMemo(() => {
+    const onKey = e => { if (e.key === 'Escape' && !showPicker) onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose, showPicker])
+
+  // Get the rich objects for the list
+  const plannedAAs = useMemo(() => {
+    return Object.entries(plan).map(([uIdStr, classMap]) => {
+      return { ability: aaAbilities.find(a => a.universalId === Number(uIdStr)), classMap }
+    }).filter(x => x.ability)
+  }, [plan, aaAbilities])
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="planner-panel" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <span className="modal-title">{characterName}'s AA Plan</span>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <div className="planner-body">
+          <div className="planner-toolbar">
+            <button className="add-aa-btn" onClick={handleOpenPicker} disabled={aaLoading}>
+              {aaLoading ? 'Loading AAs…' : '+ Add Abilities to Plan'}
+            </button>
+            <span className="planner-hint">Abilities stack per-class on Ascendant</span>
+          </div>
+
+          <div className="planner-aa-list">
+            {plannedAAs.length === 0 && <div className="planner-empty">No abilities planned yet.</div>}
+            {plannedAAs.map(({ ability, classMap }) => (
+              Object.entries(classMap).map(([cls, pts]) => (
+                <div key={`${ability.universalId}-${cls}`} className="planner-row">
+                  <div className="planner-row-info">
+                    <span className="planner-row-name">{ability.name}</span>
+                    <span className="planner-row-class">({cls})</span>
+                  </div>
+                  <div className="planner-row-controls">
+                    <label>Target Pts:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={pts}
+                      onChange={e => handleChangePoints(ability.universalId, cls, parseInt(e.target.value) || 0)}
+                    />
+                    <button className="planner-del-btn" onClick={() => handleDeleteClassRow(ability.universalId, cls)}>×</button>
+                  </div>
+                </div>
+              ))
+            ))}
+          </div>
+
+          <div className="planner-summary">
+            <h3>Tomes Required</h3>
+            {focusedPlannerTomes.size === 0 && <span className="planner-empty-hint">Select abilities and set points to see requirements.</span>}
+            <div className="planner-tome-grid">
+              {[...focusedPlannerTomes].sort().map(([key, pts]) => {
+                const [grade, cls] = key.split('|')
+                return (
+                  <div key={key} className="planner-tome-item">
+                    <span className={`aa-tome-tag grade-${grade.toLowerCase()}`}>{grade} {cls}</span>
+                    <span className="planner-tome-qty">x{pts}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button className="aa-done-btn" onClick={onClose}>Close</button>
+        </div>
+      </div>
+
+      {showPicker && (
+        <AAPickerModal
+          abilities={aaAbilities}
+          selectedAAs={planIds}
+          onToggleAA={handleToggleAA}
+          onClose={() => setShowPicker(false)}
+          lastSynced={aaLastSynced}
+          onResync={fetchAndCacheAAs}
+          resyncing={aaLoading}
+        />
+      )}
+    </div>
+  )
+}
+
 // ── Filter toolbar ───────────────────────────────────────────────────────────
 function FilterToolbar({
   tomeMode, onToggleTomeMode,
@@ -378,9 +535,9 @@ function FilterToolbar({
 }
 
 // ── Table column definition ──────────────────────────────────────────────────
-function makeColumns(onItemClick) {
+function makeColumns(onItemClick, isPlannerMode) {
   const columnHelper = createColumnHelper()
-  return [
+  const baseColumns = [
     {
       id: 'expand',
       header: '',
@@ -406,23 +563,53 @@ function makeColumns(onItemClick) {
           </button>
         </div>
       ),
-    }),
-    columnHelper.accessor('totalQty', {
-      header: 'Qty',
-      size: 80,
-      enableColumnFilter: false,
-      cell: info => <span className="qty-plain">{info.getValue()}</span>,
-    }),
+    })
   ]
+
+  if (isPlannerMode) {
+    baseColumns.push(
+      columnHelper.accessor('neededQty', {
+        header: 'Needed',
+        size: 70,
+        enableColumnFilter: false,
+        cell: info => <span className="qty-plain needed-qty">{info.getValue()}</span>,
+      }),
+      columnHelper.accessor('totalQty', {
+        header: 'Have',
+        size: 70,
+        enableColumnFilter: false,
+        cell: info => <span className="qty-plain">{info.getValue()}</span>,
+      }),
+      columnHelper.accessor('deficitQty', {
+        header: 'Deficit',
+        size: 70,
+        enableColumnFilter: false,
+        cell: info => {
+          const v = info.getValue()
+          return <span className={`qty-plain ${v > 0 ? 'deficit-qty text-red' : 'text-green'}`}>{v > 0 ? v : '✔️'}</span>
+        },
+      })
+    )
+  } else {
+    baseColumns.push(
+      columnHelper.accessor('totalQty', {
+        header: 'Qty',
+        size: 80,
+        enableColumnFilter: false,
+        cell: info => <span className="qty-plain">{info.getValue()}</span>,
+      })
+    )
+  }
+
+  return baseColumns
 }
 
-
-function InventoryTable({ rows, onItemClick, itemFilter, onFilteredCountChange }) {
+function InventoryTable({ rows, onItemClick, itemFilter, onFilteredCountChange, isPlannerMode }) {
   const [sorting, setSorting] = useState([{ id: 'totalQty', desc: true }])
   const [expanded, setExpanded] = useState({})
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 })
 
-  const columns = useMemo(() => makeColumns(onItemClick), [onItemClick])
+  const columns = useMemo(() => makeColumns(onItemClick, isPlannerMode), [onItemClick, isPlannerMode])
 
   // Apply the external item name filter directly on rows
   const filteredRows = useMemo(() => {
@@ -526,6 +713,7 @@ function InventoryTable({ rows, onItemClick, itemFilter, onFilteredCountChange }
 
 const LS_KEY     = 'asc-tracker-characters'
 const LS_AA_KEY  = 'asc-tracker-aa-cache'
+const LS_AA_PLANS_KEY = 'asc-tracker-aa-plans'
 
 function formatRelativeTime(isoString) {
   if (!isoString) return null
@@ -567,6 +755,13 @@ function App() {
   const [itemFilter, setItemFilter] = useState('')
   const [filteredCount, setFilteredCount] = useState(0)
 
+  // AA Planner state
+  const [planningCharacter, setPlanningCharacter] = useState(null)
+  const [focusedPlannerCharacter, setFocusedPlannerCharacter] = useState(null)
+  const [aaPlans, setAaPlans] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(LS_AA_PLANS_KEY)) || {} } catch { return {} }
+  })
+
   // Item modal
   const [selectedItemId, setSelectedItemId] = useState(null)
 
@@ -574,6 +769,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(LS_KEY, JSON.stringify(characters.map(c => c.name)))
   }, [characters])
+
+  useEffect(() => {
+    localStorage.setItem(LS_AA_PLANS_KEY, JSON.stringify(aaPlans))
+  }, [aaPlans])
 
   // On mount, fetch data for any restored characters
   useEffect(() => {
@@ -662,6 +861,34 @@ function App() {
     return aaAbilities.filter(a => selectedAAs.has(a.universalId))
   }, [aaAbilities, selectedAAs])
 
+  // Get currently focused planner tomes
+  const computeRequiredTomes = (characterName) => {
+    const plan = aaPlans[characterName] || {}
+    const tomes = new Map() // 'Grade|ClassName' => total points
+    Object.entries(plan).forEach(([uIdStr, classMap]) => {
+      const ability = aaAbilities.find(a => a.universalId === Number(uIdStr))
+      if (!ability) return
+      const grade = ability.tierName
+      Object.entries(classMap).forEach(([cls, pts]) => {
+        if (pts <= 0) return
+        const key = `${grade}|${cls}`
+        tomes.set(key, (tomes.get(key) || 0) + pts)
+      })
+    })
+    return tomes
+  }
+
+  const focusedPlannerTomes = useMemo(() => {
+    if (!focusedPlannerCharacter) return null
+    return computeRequiredTomes(focusedPlannerCharacter)
+  }, [focusedPlannerCharacter, aaPlans, aaAbilities])
+
+  // Get planning modal tomes
+  const planningModalTomes = useMemo(() => {
+    if (!planningCharacter) return new Map()
+    return computeRequiredTomes(planningCharacter)
+  }, [planningCharacter, aaPlans, aaAbilities])
+
   // Build a lookup: universalId → set of tome keys "Grade|ClassName"
   const aaToTomeKeys = useMemo(() => {
     const map = new Map()
@@ -703,6 +930,17 @@ function App() {
   }, [characters])
 
   const tableRows = useMemo(() => {
+    if (focusedPlannerTomes) {
+      // Planner focus mode
+      return allRows.map(row => {
+        if (!isTome(row.itemName)) return null
+        const key = `${getTomeGrade(row.itemName)}|${getTomeClass(row.itemName)}`
+        if (!focusedPlannerTomes.has(key)) return null
+        const needed = focusedPlannerTomes.get(key)
+        return { ...row, neededQty: needed, deficitQty: Math.max(0, needed - row.totalQty) }
+      }).filter(Boolean)
+    }
+
     if (!tomeMode) return allRows
 
     return allRows.filter(row => {
@@ -726,7 +964,7 @@ function App() {
       }
       return true
     })
-  }, [allRows, tomeMode, selectedClasses, selectedGrades, requiredTomeKeys])
+  }, [allRows, tomeMode, selectedClasses, selectedGrades, requiredTomeKeys, focusedPlannerTomes])
 
   const hasData = characters.some(c => c.data)
 
@@ -751,7 +989,11 @@ function App() {
           <div key={c.name} className={`pill ${c.loading ? 'loading' : ''} ${c.error ? 'error' : ''}`}>
             {c.loading && <span className="loading-spinner" />}
             {c.error ? `${c.name} (Error)` : c.name}
-            <button onClick={() => removeCharacter(c.name)}>×</button>
+            <button className="pill-plan-btn" onClick={() => setPlanningCharacter(c.name)} title="Edit AA Plan">📝</button>
+            <button className="pill-focus-btn" onClick={() => setFocusedPlannerCharacter(focusedPlannerCharacter === c.name ? null : c.name)} title={focusedPlannerCharacter === c.name ? "Turn off Planner Focus" : "Focus this Plan on main table"}>
+              {focusedPlannerCharacter === c.name ? '🎯' : '⭕'}
+            </button>
+            <button className="pill-remove-btn" onClick={() => removeCharacter(c.name)}>×</button>
           </div>
         ))}
       </div>
@@ -761,26 +1003,36 @@ function App() {
 
       {hasData && (
         <>
-          <FilterToolbar
-            tomeMode={tomeMode}         onToggleTomeMode={handleToggleTomeMode}
-            selectedClasses={selectedClasses} onToggleClass={toggleClass}
-            selectedGrades={selectedGrades}   onToggleGrade={toggleGrade}
-            selectedAAs={selectedAAObjects}
-            onOpenAAPickeer={handleOpenAAPicker}
-            onClearAAs={() => setSelectedAAs(new Set())}
-            onRemoveAA={handleRemoveAA}
-            aaLoading={aaLoading}
-            requiredTomeKeys={requiredTomeKeys}
-            itemFilter={itemFilter}
-            onItemFilterChange={v => { setItemFilter(v) }}
-            totalFiltered={filteredCount}
-          />
+          {focusedPlannerCharacter && (
+            <div className="planner-focus-banner">
+              <strong>🎯 Planner Focus Active:</strong> Showing required tomes for <span>{focusedPlannerCharacter}</span>'s plan.
+              <button onClick={() => setFocusedPlannerCharacter(null)}>Clear Focus</button>
+            </div>
+          )}
+
+          {!focusedPlannerCharacter && (
+            <FilterToolbar
+              tomeMode={tomeMode}         onToggleTomeMode={handleToggleTomeMode}
+              selectedClasses={selectedClasses} onToggleClass={toggleClass}
+              selectedGrades={selectedGrades}   onToggleGrade={toggleGrade}
+              selectedAAs={selectedAAObjects}
+              onOpenAAPickeer={handleOpenAAPicker}
+              onClearAAs={() => setSelectedAAs(new Set())}
+              onRemoveAA={handleRemoveAA}
+              aaLoading={aaLoading}
+              requiredTomeKeys={requiredTomeKeys}
+              itemFilter={itemFilter}
+              onItemFilterChange={v => { setItemFilter(v) }}
+              totalFiltered={filteredCount}
+            />
+          )}
 
           <InventoryTable
             rows={tableRows}
             onItemClick={setSelectedItemId}
             itemFilter={itemFilter}
             onFilteredCountChange={setFilteredCount}
+            isPlannerMode={!!focusedPlannerCharacter}
           />
         </>
       )}
@@ -796,6 +1048,20 @@ function App() {
           lastSynced={aaLastSynced}
           onResync={fetchAndCacheAAs}
           resyncing={aaLoading}
+        />
+      )}
+
+      {planningCharacter && (
+        <CharacterPlannerModal
+          characterName={planningCharacter}
+          aaPlans={aaPlans}
+          setAaPlans={setAaPlans}
+          aaAbilities={aaAbilities}
+          aaLoading={aaLoading}
+          fetchAndCacheAAs={fetchAndCacheAAs}
+          aaLastSynced={aaLastSynced}
+          onClose={() => setPlanningCharacter(null)}
+          focusedPlannerTomes={planningModalTomes}
         />
       )}
     </div>
