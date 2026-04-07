@@ -421,10 +421,6 @@ function CharacterPlannerModal({
             </div>
           </div>
         </div>
-
-        <div className="modal-footer">
-          <button className="aa-done-btn" onClick={onClose}>Close</button>
-        </div>
       </div>
 
       {showPicker && (
