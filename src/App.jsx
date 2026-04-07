@@ -290,7 +290,7 @@ function FilterToolbar({
   tomeMode, onToggleTomeMode,
   selectedClasses, onToggleClass,
   selectedGrades, onToggleGrade,
-  selectedAAs, onOpenAAPickeer, onClearAAs,
+  selectedAAs, onOpenAAPickeer, onClearAAs, onRemoveAA,
   aaLoading, requiredTomeKeys,
   itemFilter, onItemFilterChange,
   totalFiltered,
@@ -348,9 +348,16 @@ function FilterToolbar({
             <button className="aa-picker-btn" onClick={onOpenAAPickeer} disabled={aaLoading}>
               {aaLoading ? 'Loading AAs…' : '+ Select AAs'}
             </button>
-            {selectedAAs.size > 0 && (
+            {selectedAAs.length > 0 && (
               <>
-                <span className="aa-active-label">{selectedAAs.size} AA{selectedAAs.size !== 1 ? 's' : ''}</span>
+                <div className="aa-active-list">
+                  {selectedAAs.map(a => (
+                    <span key={a.universalId} className="aa-selected-pill">
+                      {a.name}
+                      <button onClick={() => onRemoveAA(a.universalId)}>×</button>
+                    </span>
+                  ))}
+                </div>
                 <span className="aa-arrow">→</span>
                 {[...requiredTomeKeys].sort().map(key => {
                   const [grade, cls] = key.split('|')
@@ -643,6 +650,18 @@ function App() {
     setShowAAPicker(true)
   }
 
+  const handleRemoveAA = id => {
+    setSelectedAAs(prev => {
+      const s = new Set(prev)
+      s.delete(id)
+      return s
+    })
+  }
+
+  const selectedAAObjects = useMemo(() => {
+    return aaAbilities.filter(a => selectedAAs.has(a.universalId))
+  }, [aaAbilities, selectedAAs])
+
   // Build a lookup: universalId → set of tome keys "Grade|ClassName"
   const aaToTomeKeys = useMemo(() => {
     const map = new Map()
@@ -746,9 +765,10 @@ function App() {
             tomeMode={tomeMode}         onToggleTomeMode={handleToggleTomeMode}
             selectedClasses={selectedClasses} onToggleClass={toggleClass}
             selectedGrades={selectedGrades}   onToggleGrade={toggleGrade}
-            selectedAAs={selectedAAs}
+            selectedAAs={selectedAAObjects}
             onOpenAAPickeer={handleOpenAAPicker}
             onClearAAs={() => setSelectedAAs(new Set())}
+            onRemoveAA={handleRemoveAA}
             aaLoading={aaLoading}
             requiredTomeKeys={requiredTomeKeys}
             itemFilter={itemFilter}
