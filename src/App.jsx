@@ -788,8 +788,10 @@ function App() {
   }
 
   const addCharacter = async () => {
-    const name = inputName.trim()
+    let name = inputName.trim()
     if (!name) return
+    name = name.charAt(0).toUpperCase() + name.slice(1)
+
     if (characters.find(c => c.name.toLowerCase() === name.toLowerCase())) {
       setError('Character already added')
       setTimeout(() => setError(''), 2000)
