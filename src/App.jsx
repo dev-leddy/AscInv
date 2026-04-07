@@ -287,7 +287,7 @@ function AAPickerModal({ abilities, selectedAAs, onToggleAA, onClose, lastSynced
 
 // ── Character Planner Modal ──────────────────────────────────────────────────
 function CharacterPlannerModal({
-  characterName, aaPlans, setAaPlans, aaAbilities, aaLoading, fetchAndCacheAAs, aaLastSynced, onClose
+  characterName, aaPlans, setAaPlans, aaAbilities, aaLoading, fetchAndCacheAAs, aaLastSynced, onClose, focusedPlannerTomes
 }) {
   const [showPicker, setShowPicker] = useState(false)
 
