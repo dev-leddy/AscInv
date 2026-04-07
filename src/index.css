@@ -1065,15 +1065,15 @@ tr.main-row:hover .expand-btn {
 
 /* ── AA Planner Modal ───────────────────────────────────────────────────── */
 .planner-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: linear-gradient(to bottom, #1e2736, #161e2c);
+  border: 2px solid #3a4a5e;
+  border-radius: 8px;
   width: 90%;
   max-width: 600px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 0 40px rgba(0,0,0,0.8);
   overflow: hidden;
 }
 
@@ -1114,7 +1114,7 @@ tr.main-row:hover .expand-btn {
 }
 
 .planner-aa-list {
-  background: var(--bg);
+  background: rgba(0,0,0,0.3);
   border: 1px solid var(--border);
   border-radius: 8px;
   min-height: 100px;
