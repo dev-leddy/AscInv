@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:ascendanteq.com)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type} %{redirect_url}\" \"https://ascendanteq.com/icons/565.png\")",
+      "Bash(curl -Ls -o /dev/null -w \"%{http_code} %{content_type} %{url_effective}\" \"https://www.eqitems.com/item_images/565.png\")"
+    ]
+  }
+}
