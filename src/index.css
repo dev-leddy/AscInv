@@ -842,9 +842,7 @@ tr.main-row:hover .expand-btn {
 
 /* Tooltip */
 .aa-chip-tooltip {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 0;
+  /* position/left/bottom set via inline style (fixed to viewport) */
   z-index: 9999;
   min-width: 220px;
   max-width: 320px;
@@ -858,15 +856,6 @@ tr.main-row:hover .expand-btn {
   gap: 6px;
   pointer-events: none;
   white-space: normal;
-}
-
-.aa-chip-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 14px;
-  border: 5px solid transparent;
-  border-top-color: #3a4a5e;
 }
 
 .aa-chip-tooltip-name {

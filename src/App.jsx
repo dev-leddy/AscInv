@@ -665,20 +665,33 @@ function FilterToolbar({
 
 // ── AA chip with hover tooltip ───────────────────────────────────────────────
 function AAChip({ ability }) {
-  const [visible, setVisible] = useState(false)
+  const [tipStyle, setTipStyle] = useState(null)
+  const chipRef = useRef(null)
+
+  const showTip = () => {
+    const rect = chipRef.current.getBoundingClientRect()
+    setTipStyle({
+      position: 'fixed',
+      left: Math.min(rect.left, window.innerWidth - 330),
+      bottom: window.innerHeight - rect.top + 6,
+    })
+  }
+  const hideTip = () => setTipStyle(null)
+
   return (
     <span
+      ref={chipRef}
       className="aa-chip"
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
-      onClick={e => { e.stopPropagation(); setVisible(v => !v) }}
+      onMouseEnter={showTip}
+      onMouseLeave={hideTip}
+      onClick={e => { e.stopPropagation(); tipStyle ? hideTip() : showTip() }}
     >
       <span className={`aa-chip-grade grade-${ability.tierName.toLowerCase()}`}>
         {ability.tierName[0]}
       </span>
       {ability.name}
-      {visible && (
-        <span className="aa-chip-tooltip" onClick={e => e.stopPropagation()}>
+      {tipStyle && (
+        <span className="aa-chip-tooltip" style={tipStyle} onClick={e => e.stopPropagation()}>
           <span className="aa-chip-tooltip-name">{ability.name}</span>
           {ability.description && (
             <span className="aa-chip-tooltip-desc">{ability.description}</span>
