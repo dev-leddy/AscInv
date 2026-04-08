@@ -602,6 +602,92 @@ button:disabled {
   border-radius: 6px;
 }
 
+.discord-export-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #5865f2;
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.discord-export-btn:hover {
+  background: #4752c4;
+}
+
+.export-code-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text-h);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.export-code-btn:hover {
+  background: rgba(255,255,255,0.14);
+}
+
+.import-plan-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.import-plan-btn:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.planner-import-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.planner-import-input {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: var(--text-h);
+  font-size: 12px;
+  font-family: monospace;
+  padding: 8px;
+  resize: none;
+  box-sizing: border-box;
+}
+.planner-import-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.planner-import-error {
+  font-size: 12px;
+  color: #f87171;
+}
+.planner-import-apply-btn {
+  align-self: flex-end;
+  padding: 5px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.planner-import-apply-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* ── Table toolbar ─────────────────────────────── */
 .row-count {
   font-size: 12px;
@@ -1403,18 +1489,28 @@ tr.main-row:hover .expand-btn {
 
 .planner-tome-item {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: stretch;
+  gap: 0;
   background: var(--bg);
-  padding: 4px 10px;
+  padding: 0;
   border-radius: 6px;
   border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.planner-tome-item .aa-tome-tag {
+  border-radius: 0;
+  border: none;
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
 }
 
 .planner-tome-qty {
   font-weight: bold;
   font-size: 13px;
   color: var(--text-h);
+  padding: 5px 10px;
 }
 
 /* ── Planner Table Integration ──────────────────────────────────────────── */

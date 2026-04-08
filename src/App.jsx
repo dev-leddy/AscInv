@@ -330,7 +330,7 @@ function AAPickerModal({ abilities, selectedAAs, onToggleAA, onClose, lastSynced
     const src = filterGrade ? abilities.filter(a => a.tierName === filterGrade) : abilities
     const set = new Set()
     src.forEach(a => a.originalClassNames.forEach(c => set.add(c)))
-    return CLASS_MAP.filter(c => set.has(c.fullName))
+    return CLASS_MAP.filter(c => set.has(c.fullName)).sort((a, b) => a.fullName.localeCompare(b.fullName))
   }, [abilities, filterGrade])
 
   return (
@@ -422,6 +422,9 @@ function CharacterPlannerModal({
   characterName, characterClassName, aaPlans, setAaPlans, aaAbilities, aaLoading, fetchAndCacheAAs, aaLastSynced, onClose, focusedPlannerTomes
 }) {
   const [showPicker, setShowPicker] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [importInput, setImportInput] = useState('')
+  const [importError, setImportError] = useState(null)
 
   // Open the picker
   const handleOpenPicker = async () => {
@@ -493,6 +496,68 @@ function CharacterPlannerModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, showPicker])
 
+  const PLAN_SHARE_API = 'https://asc-plan-share.iamleddy.workers.dev'
+
+  const handleImportCode = async () => {
+    const code = importInput.trim().toLowerCase()
+    if (!code) return
+    setImportError(null)
+    try {
+      const res = await fetch(`${PLAN_SHARE_API}/plan/${code}`)
+      if (!res.ok) throw new Error('not found')
+      const { plan: newPlan } = await res.json()
+      setAaPlans(prev => ({ ...prev, [characterName]: newPlan }))
+      setImportInput('')
+      setShowImport(false)
+    } catch {
+      setImportError('Code not found or expired.')
+    }
+  }
+
+  // Export plan to Discord-formatted clipboard text (includes a short share code)
+  const [copyMsg, setCopyMsg] = useState(null)
+  const handleExportToDiscord = async () => {
+    setCopyMsg('Saving…')
+    const rows = []
+    plannedAAs.forEach(({ ability, classMap }) => {
+      Object.entries(classMap).forEach(([cls, pts]) => {
+        const normalizedCls = CLASS_NAME_ALIASES[cls] ?? cls
+        const abbr = CLASS_MAP.find(c => c.fullName === normalizedCls)?.abbr ?? normalizedCls
+        rows.push({ qty: pts, grade: ability.tierName, abbr, name: ability.name })
+      })
+    })
+    const hasDouble = rows.some(r => r.qty > 9)
+    const lines = rows.map(r =>
+      `${hasDouble && r.qty < 10 ? '‎ ‎' : ''}${r.qty}x  ${{Greater:'G',Exalted:'E',Ascendant:'A'}[r.grade]??r.grade} ${r.abbr}  ${r.name}`
+    )
+
+    let code = null
+    try {
+      const res = await fetch(`${PLAN_SHARE_API}/plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      const data = await res.json()
+      code = data.code
+    } catch { /* non-fatal, just omit the code */ }
+
+    const header = code
+      ? `**${characterName}'s AA Plan** · import code: \`${code}\``
+      : `**${characterName}'s AA Plan**`
+    const text = lines.length > 0
+      ? `${header}\n\`\`\`\n${lines.join('\n')}\n\`\`\``
+      : `${header}\nNo abilities planned.`
+
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyMsg('Copied!')
+      setTimeout(() => setCopyMsg(null), 2000)
+    }).catch(() => {
+      setCopyMsg('Copy failed')
+      setTimeout(() => setCopyMsg(null), 2000)
+    })
+  }
+
   // Get the rich objects for the list
   const plannedAAs = useMemo(() => {
     return Object.entries(plan).map(([uIdStr, classMap]) => {
@@ -513,8 +578,29 @@ function CharacterPlannerModal({
             <button className="add-aa-btn" onClick={handleOpenPicker} disabled={aaLoading}>
               {aaLoading ? 'Loading AAs…' : '+ Add Abilities to Plan'}
             </button>
-            <span className="planner-hint">Abilities stack per-class on Ascendant</span>
+            <button className="import-plan-btn" onClick={() => { setShowImport(v => !v); setImportError(null) }}>
+              {showImport ? 'Cancel Import' : '↓ Import Plan'}
+            </button>
+            <button className="discord-export-btn" onClick={handleExportToDiscord}>
+              {copyMsg ?? '📋 Export to Discord'}
+            </button>
           </div>
+
+          {showImport && (
+            <div className="planner-import-area">
+              <textarea
+                className="planner-import-input"
+                value={importInput}
+                onChange={e => { setImportInput(e.target.value); setImportError(null) }}
+                placeholder="Paste export code here…"
+                rows={3}
+              />
+              {importError && <span className="planner-import-error">{importError}</span>}
+              <button className="planner-import-apply-btn" onClick={handleImportCode} disabled={!importInput.trim()}>
+                Apply
+              </button>
+            </div>
+          )}
 
           <div className="planner-aa-list">
             {plannedAAs.length === 0 && <div className="planner-empty">No abilities planned yet.</div>}
@@ -523,7 +609,7 @@ function CharacterPlannerModal({
                 <div key={`${ability.universalId}-${cls}`} className="planner-row">
                   <div className="planner-row-info">
                     <span className="planner-row-name">{ability.name}</span>
-                    <span className="planner-row-class">({cls})</span>
+                    <span className="planner-row-class">({CLASS_NAME_ALIASES[cls] ?? cls})</span>
                   </div>
                   <div className="planner-row-controls">
                     <label>Target Pts:</label>
@@ -549,7 +635,7 @@ function CharacterPlannerModal({
                 const [grade, cls] = key.split('|')
                 return (
                   <div key={key} className="planner-tome-item">
-                    <span className={`aa-tome-tag grade-${grade.toLowerCase()}`}>{grade} {cls}</span>
+                    <span className={`aa-tome-tag grade-${grade.toLowerCase()}`}>{grade} {CLASS_NAME_ALIASES[cls] ?? cls}</span>
                     <span className="planner-tome-qty">x{pts}</span>
                   </div>
                 )
@@ -624,7 +710,7 @@ function FilterToolbar({
         <>
           <div className="filter-toolbar-row">
             <div className="filter-group">
-              {CLASS_MAP.map(c => (
+              {[...CLASS_MAP].sort((a, b) => a.fullName.localeCompare(b.fullName)).map(c => (
                 <button
                   key={c.abbr}
                   className={`filter-btn ${selectedClasses.has(c.abbr) ? 'active' : ''}`}
@@ -922,6 +1008,14 @@ const LS_KEY     = 'asc-tracker-characters'
 const LS_AA_KEY  = 'asc-tracker-aa-cache'
 const LS_AA_PLANS_KEY = 'asc-tracker-aa-plans'
 
+// Normalize class name variants the API may return
+const CLASS_NAME_ALIASES = { 'Shadowknight': 'Shadow Knight' }
+const normalizeAbilities = abilities =>
+  abilities.map(a => ({
+    ...a,
+    originalClassNames: a.originalClassNames.map(c => CLASS_NAME_ALIASES[c] ?? c)
+  }))
+
 function formatRelativeTime(isoString) {
   if (!isoString) return null
   const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000)
@@ -949,7 +1043,7 @@ function App() {
 
   // AA picker
   const [aaAbilities, setAaAbilities] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(LS_AA_KEY))?.abilities || [] } catch { return [] }
+    try { return normalizeAbilities(JSON.parse(localStorage.getItem(LS_AA_KEY))?.abilities || []) } catch { return [] }
   })
   const [aaLastSynced, setAaLastSynced] = useState(() => {
     try { return JSON.parse(localStorage.getItem(LS_AA_KEY))?.syncedAt || null } catch { return null }
@@ -1069,7 +1163,7 @@ function App() {
     try {
       const res = await fetch(AA_API)
       const data = await res.json()
-      const abilities = data.abilities || []
+      const abilities = normalizeAbilities(data.abilities || [])
       const syncedAt = new Date().toISOString()
       setAaAbilities(abilities)
       setAaLastSynced(syncedAt)
