@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, Fragment } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef, Fragment } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -72,9 +72,9 @@ function extractItems(character) {
       ? container.name : null
 
     if (containerName) {
-      items.push({ name: containerName, location: `${containerSlot} (${containerName})`, icon: container.icon, itemId: container.itemId })
+      items.push({ name: containerName, location: `${containerSlot} (${containerName})`, icon: container.icon, itemId: container.itemId, qty: container.charges || 1 })
     } else if (isBank && container.name && container.name !== 'Backpack' && container.name !== 'Backpack*') {
-      items.push({ name: container.name, location: containerSlot, icon: container.icon, itemId: container.itemId })
+      items.push({ name: container.name, location: containerSlot, icon: container.icon, itemId: container.itemId, qty: container.charges || 1 })
     }
 
     if (container.contents) {
@@ -93,7 +93,7 @@ function extractItems(character) {
             : containerName
               ? `${containerSlot} (${containerName}), Slot ${bagSlot}`
               : `${containerSlot}, Slot ${bagSlot}`
-          items.push({ name: item.name, location: loc, icon: item.icon, itemId: item.itemId })
+          items.push({ name: item.name, location: loc, icon: item.icon, itemId: item.itemId, qty: item.charges || 1 })
         }
       })
     }
@@ -105,6 +105,12 @@ function extractItems(character) {
 }
 
 // ── Item Detail Modal ────────────────────────────────────────────────────────
+const SIZE_NAMES = ['TINY', 'SMALL', 'MEDIUM', 'LARGE', 'GIANT']
+const EFFECT_TYPE_LABELS = {
+  proc: 'Combat Proc', click: 'Click Effect', worn: 'Worn Effect',
+  focus: 'Focus Effect', scroll: 'Scroll Effect', bard: 'Bard Effect',
+}
+
 function ItemModal({ itemId, onClose }) {
   const [item, setItem] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -123,14 +129,12 @@ function ItemModal({ itemId, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const STATS = [
-    ['AC','ac'],['HP','hp'],['Mana','mana'],['Endur','endur'],
-    ['STR','astr'],['STA','asta'],['DEX','adex'],['AGI','aagi'],['INT','aint'],['WIS','awis'],['CHA','acha'],
-    ['Haste','haste'],['Attack','attack'],['Regen','regen'],['Mana Regen','manaregen'],
-    ['FR','fr'],['CR','cr'],['MR','mr'],['DR','dr'],['PR','pr'],
-    ['H.STR','heroic_str'],['H.STA','heroic_sta'],['H.DEX','heroic_dex'],
-    ['H.AGI','heroic_agi'],['H.INT','heroic_int'],['H.WIS','heroic_wis'],['H.CHA','heroic_cha'],
-  ]
+  const renderStat = ({ label, value, cls }, i) => (
+    <div key={i} className="msr">
+      <span className="msr-label">{label}</span>
+      <span className={`msr-value ${cls || ''}`}>{value}</span>
+    </div>
+  )
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -140,35 +144,148 @@ function ItemModal({ itemId, onClose }) {
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         {loading && <div className="modal-loading">Loading…</div>}
-        {!loading && item && (
-          <div className="modal-body">
-            <div className="modal-identity">
-              {item.icon && <img src={`${ICON_BASE}${item.icon}.png`} alt="" className="modal-icon" onError={e => { e.target.style.display='none' }} />}
-              <div className="modal-meta">
-                <div className="modal-item-name">{item.Name}</div>
-                <div className="modal-detail-line"><span className="modal-detail-label">Class: </span>{getClassNames(item.classes)}</div>
-                <div className="modal-detail-line"><span className="modal-detail-label">Race: </span>{getRaceNames(item.races)}</div>
-                {item.slots > 0 && <div className="modal-detail-line"><span className="modal-detail-label">Slot: </span>{getSlotName(item.slots)}</div>}
-                {item.reqlevel > 0 && <div className="modal-detail-line"><span className="modal-detail-label">Req Level: </span>{item.reqlevel}</div>}
-              </div>
-            </div>
-            {STATS.some(([,key]) => item[key] > 0) && (
-              <div className="modal-stats">
-                {STATS.filter(([,key]) => item[key] > 0).map(([label,key]) => (
-                  <div key={key} className="modal-stat">
-                    <span className="modal-stat-label">{label}</span>
-                    <span className="modal-stat-value">+{item[key]}</span>
+        {!loading && item && (() => {
+          const flags = [item.magic && 'Magic', item.nodrop && 'No Trade', item.norent && 'No Rent'].filter(Boolean)
+
+          // Left col: size/weight + primary stats
+          const leftStats = [
+            { label: 'Size',        value: SIZE_NAMES[item.size] ?? item.size, cls: 'sv-plain' },
+            { label: 'Weight',      value: (item.weight / 10).toFixed(1),      cls: 'sv-plain' },
+            item.astr  > 0 && { label: 'Strength',     value: `+${item.astr}`,  cls: 'sv-green' },
+            item.asta  > 0 && { label: 'Stamina',      value: `+${item.asta}`,  cls: 'sv-green' },
+            item.adex  > 0 && { label: 'Dexterity',    value: `+${item.adex}`,  cls: 'sv-green' },
+            item.aagi  > 0 && { label: 'Agility',      value: `+${item.aagi}`,  cls: 'sv-green' },
+            item.aint  > 0 && { label: 'Intelligence', value: `+${item.aint}`,  cls: 'sv-green' },
+            item.awis  > 0 && { label: 'Wisdom',       value: `+${item.awis}`,  cls: 'sv-green' },
+            item.acha  > 0 && { label: 'Charisma',     value: `+${item.acha}`,  cls: 'sv-green' },
+            item.avoidance   > 0 && { label: 'Avoidance',   value: `+${item.avoidance}`,   cls: 'sv-green' },
+            item.accuracy    > 0 && { label: 'Accuracy',    value: `+${item.accuracy}`,    cls: 'sv-green' },
+            item.backstabdmg > 0 && { label: 'Backstab',    value: `+${item.backstabdmg}`, cls: 'sv-green' },
+            item.spelldmg    > 0 && { label: 'Spell Dmg',   value: `+${item.spelldmg}`,    cls: 'sv-green' },
+            item.healamt     > 0 && { label: 'Heal Amt',    value: `+${item.healamt}`,      cls: 'sv-green' },
+            item.clairvoyance> 0 && { label: 'Clairvoyance',value: `+${item.clairvoyance}`,cls: 'sv-green' },
+          ].filter(Boolean)
+
+          // Right col: defensive + resists
+          const rightStats = [
+            item.ac       > 0 && { label: 'AC',         value: item.ac,              cls: 'sv-plain' },
+            item.hp       > 0 && { label: 'HP',         value: item.hp,              cls: 'sv-plain' },
+            item.mana     > 0 && { label: 'Mana',       value: item.mana,            cls: 'sv-plain' },
+            item.endur    > 0 && { label: 'End',        value: item.endur,           cls: 'sv-plain' },
+            item.attack   > 0 && { label: 'Attack',     value: `+${item.attack}`,    cls: 'sv-green' },
+            item.haste    > 0 && { label: 'Haste',      value: `+${item.haste}%`,    cls: 'sv-green' },
+            item.regen    > 0 && { label: 'HP Regen',   value: `+${item.regen}`,     cls: 'sv-green' },
+            item.manaregen> 0 && { label: 'Mana Regen', value: `+${item.manaregen}`, cls: 'sv-green' },
+            item.fr > 0 && { label: 'Fire',    value: `+${item.fr}`, cls: 'sv-resist' },
+            item.cr > 0 && { label: 'Cold',    value: `+${item.cr}`, cls: 'sv-resist' },
+            item.mr > 0 && { label: 'Magic',   value: `+${item.mr}`, cls: 'sv-resist' },
+            item.dr > 0 && { label: 'Disease', value: `+${item.dr}`, cls: 'sv-resist' },
+            item.pr > 0 && { label: 'Poison',  value: `+${item.pr}`, cls: 'sv-resist' },
+          ].filter(Boolean)
+
+          const heroicStats = [
+            item.heroic_str > 0 && { label: 'H.Str', value: `+${item.heroic_str}`, cls: 'sv-heroic' },
+            item.heroic_sta > 0 && { label: 'H.Sta', value: `+${item.heroic_sta}`, cls: 'sv-heroic' },
+            item.heroic_dex > 0 && { label: 'H.Dex', value: `+${item.heroic_dex}`, cls: 'sv-heroic' },
+            item.heroic_agi > 0 && { label: 'H.Agi', value: `+${item.heroic_agi}`, cls: 'sv-heroic' },
+            item.heroic_int > 0 && { label: 'H.Int', value: `+${item.heroic_int}`, cls: 'sv-heroic' },
+            item.heroic_wis > 0 && { label: 'H.Wis', value: `+${item.heroic_wis}`, cls: 'sv-heroic' },
+            item.heroic_cha > 0 && { label: 'H.Cha', value: `+${item.heroic_cha}`, cls: 'sv-heroic' },
+          ].filter(Boolean)
+
+          const hasStats = leftStats.length > 2 || rightStats.length > 0 // >2 because size+weight always present
+          const hasWeapon = item.damage > 0
+          const hasEffects = item.itemEffects && item.itemEffects.length > 0
+
+          return (
+            <div className="modal-body">
+              {/* Description */}
+              <div className="modal-section modal-desc">
+                <div className="modal-section-hdr">Description</div>
+                <div className="modal-identity">
+                  {item.icon && (
+                    <img src={`${ICON_BASE}${item.icon}.png`} alt="" className="modal-icon"
+                      onError={e => { e.target.style.display = 'none' }} />
+                  )}
+                  <div className="modal-meta">
+                    <div className="modal-item-name">{item.Name}</div>
+                    {flags.length > 0 && <div className="modal-flags">{flags.join(', ')}</div>}
+                    {item.classes > 0 && item.classes !== 65535 && (
+                      <div className="modal-detail-line">
+                        <span className="modal-detail-label">Class: </span>
+                        <span className="modal-detail-val">{getClassNames(item.classes)}</span>
+                      </div>
+                    )}
+                    {item.races > 0 && (
+                      <div className="modal-detail-line">
+                        <span className="modal-detail-label">Race: </span>
+                        <span className="modal-detail-val">{getRaceNames(item.races)}</span>
+                      </div>
+                    )}
+                    {item.slots > 0 && (
+                      <div className="modal-detail-line modal-slot-line">{getSlotName(item.slots)}</div>
+                    )}
+                    {(item.reqlevel > 0 || item.reclevel > 0) && (
+                      <div className="modal-detail-line">
+                        {item.reqlevel > 0 && <><span className="modal-detail-label">Req Lv: </span><span className="modal-detail-val">{item.reqlevel}</span></>}
+                        {item.reqlevel > 0 && item.reclevel > 0 && <span className="modal-detail-label">  /  Rec Lv: </span>}
+                        {item.reclevel > 0 && <span className="modal-detail-val">{item.reclevel}</span>}
+                      </div>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
-            )}
-            {item.damage > 0 && (
-              <div className="modal-weapon">
-                {item.damage}/{item.delay} ({Math.round((item.damage / item.delay) * 100) / 100} ratio)
-              </div>
-            )}
-          </div>
-        )}
+
+              {/* Stats */}
+              {hasStats && (
+                <div className="modal-section modal-stats-section">
+                  <div className="modal-stats-grid">
+                    <div className="modal-stats-col">{leftStats.map(renderStat)}</div>
+                    <div className="modal-stats-col">{rightStats.map(renderStat)}</div>
+                  </div>
+                  {heroicStats.length > 0 && (
+                    <div className="modal-heroic-row">
+                      {heroicStats.map(renderStat)}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Weapon */}
+              {hasWeapon && (
+                <div className="modal-section modal-weapon-section">
+                  <div className="modal-stats-grid">
+                    <div className="msr">
+                      <span className="msr-label">Damage</span>
+                      <span className="msr-value sv-plain">{item.damage}</span>
+                    </div>
+                    <div className="msr">
+                      <span className="msr-label">Delay</span>
+                      <span className="msr-value sv-plain">{item.delay}</span>
+                    </div>
+                  </div>
+                  <div className="msr modal-ratio-row">
+                    <span className="msr-label">Ratio</span>
+                    <span className="msr-value sv-ratio">{(item.damage / item.delay).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Effects */}
+              {hasEffects && (
+                <div className="modal-section modal-effects-section">
+                  {item.itemEffects.map((eff, i) => (
+                    <div key={i} className="modal-effect-row">
+                      <span className="modal-detail-label">{EFFECT_TYPE_LABELS[eff.effect_type] ?? eff.effect_type}: </span>
+                      <span className="modal-effect-name">{eff.spell_name}</span>
+                      {eff.level > 0 && <span className="modal-effect-level"> (Lv.{eff.level})</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
@@ -471,15 +588,7 @@ function FilterToolbar({
           </>
         )}
 
-        <div className="filter-toolbar-right">
-          <input
-            className="item-search-input"
-            value={itemFilter}
-            onChange={e => onItemFilterChange(e.target.value)}
-            placeholder="Filter items…"
-          />
-          <span className="row-count">{totalFiltered} item{totalFiltered !== 1 ? 's' : ''}</span>
-        </div>
+        <span className="row-count">{totalFiltered} item{totalFiltered !== 1 ? 's' : ''}</span>
       </div>
 
       {tomeMode && (
@@ -526,6 +635,15 @@ function FilterToolbar({
           </div>
         </>
       )}
+
+      <div className="filter-toolbar-row filter-toolbar-search">
+        <input
+          className="item-search-input"
+          value={itemFilter}
+          onChange={e => onItemFilterChange(e.target.value)}
+          placeholder="Filter items…"
+        />
+      </div>
     </div>
   )
 }
@@ -538,7 +656,7 @@ function makeColumns(onItemClick, isPlannerMode) {
       id: 'expand',
       header: '',
       cell: ({ row }) => (
-        <button className="expand-btn" onClick={() => row.toggleExpanded()}>
+        <button className="expand-btn" onClick={(e) => { e.stopPropagation(); row.toggleExpanded(); }}>
           {row.getIsExpanded() ? '▼' : '▶'}
         </button>
       ),
@@ -554,7 +672,7 @@ function makeColumns(onItemClick, isPlannerMode) {
           {info.row.original.icon && (
             <img src={`${ICON_BASE}${info.row.original.icon}.png`} alt="" className="item-icon" />
           )}
-          <button className="item-name-btn" onClick={() => onItemClick(info.row.original.itemId)}>
+          <button className="item-name-btn" onClick={(e) => { e.stopPropagation(); onItemClick(info.row.original.itemId); }}>
             {info.getValue()}
           </button>
         </div>
@@ -606,6 +724,11 @@ function InventoryTable({ rows, onItemClick, itemFilter, onFilteredCountChange, 
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 })
 
   const columns = useMemo(() => makeColumns(onItemClick, isPlannerMode), [onItemClick, isPlannerMode])
+
+  // Reset to page 0 whenever the source rows or filter changes
+  useEffect(() => {
+    setPagination(p => ({ ...p, pageIndex: 0 }))
+  }, [rows, itemFilter])
 
   // Apply the external item name filter directly on rows
   const filteredRows = useMemo(() => {
@@ -660,7 +783,7 @@ function InventoryTable({ rows, onItemClick, itemFilter, onFilteredCountChange, 
           <tbody>
             {table.getRowModel().rows.map(row => (
               <Fragment key={row.id}>
-                <tr className="main-row">
+                <tr className={`main-row clickable ${row.getIsExpanded() ? 'expanded' : ''}`} onClick={() => row.toggleExpanded()}>
                   {row.getVisibleCells().map(cell => (
                     <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
                   ))}
@@ -673,7 +796,7 @@ function InventoryTable({ rows, onItemClick, itemFilter, onFilteredCountChange, 
                           <div key={o.owner} className="detail-pill">
                             <div className="detail-pill-name">{o.owner}</div>
                             {Object.entries(
-                              o.locations.reduce((acc, loc) => { acc[loc] = (acc[loc] || 0) + 1; return acc }, {})
+                              o.locations.reduce((acc, { loc, qty }) => { acc[loc] = (acc[loc] || 0) + qty; return acc }, {})
                             ).map(([loc, qty], i) => (
                               <div key={i} className="detail-pill-loc">
                                 <span className="detail-pill-qty">{qty}</span>
@@ -770,8 +893,11 @@ function App() {
     localStorage.setItem(LS_AA_PLANS_KEY, JSON.stringify(aaPlans))
   }, [aaPlans])
 
-  // On mount, fetch data for any restored characters
+  // On mount, fetch data for any restored characters (ref guard prevents StrictMode double-fire)
+  const didFetchOnMount = useRef(false)
   useEffect(() => {
+    if (didFetchOnMount.current) return
+    didFetchOnMount.current = true
     characters.forEach(c => { if (c.loading) fetchCharacter(c.name) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -814,6 +940,7 @@ function App() {
     setSelectedClasses(new Set())
     setSelectedGrades(new Set())
     setSelectedAAs(new Set())
+    setItemFilter('')
   }
 
   const handleToggleAA = useCallback(ability => {
@@ -914,11 +1041,11 @@ function App() {
           byItem.set(item.name, { itemName: item.name, icon: item.icon, itemId: item.itemId, totalQty: 0, owners: new Map() })
         }
         const row = byItem.get(item.name)
-        row.totalQty++
+        row.totalQty += item.qty
         if (!row.owners.has(c.data.name)) row.owners.set(c.data.name, { owner: c.data.name, count: 0, locations: [] })
         const o = row.owners.get(c.data.name)
-        o.count++
-        o.locations.push(item.location)
+        o.count += item.qty
+        o.locations.push({ loc: item.location, qty: item.qty })
       })
     })
     return Array.from(byItem.values()).map(row => ({
