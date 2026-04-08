@@ -1436,8 +1436,19 @@ tr.main-row:hover .expand-btn {
   font-weight: 700;
 }
 
-.planner-focus-banner button {
+.planner-focus-banner-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.planner-sync {
+  border-right: 1px solid var(--border);
+  padding-right: 10px;
+}
+
+.planner-focus-banner button {
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);

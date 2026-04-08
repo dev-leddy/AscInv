@@ -511,6 +511,12 @@ function CharacterPlannerModal({
               {aaLoading ? 'Loading AAs…' : '+ Add Abilities to Plan'}
             </button>
             <span className="planner-hint">Abilities stack per-class on Ascendant</span>
+            <div className="aa-sync-info planner-sync">
+              {aaLastSynced && <span className="aa-sync-label">Synced {formatRelativeTime(aaLastSynced)}</span>}
+              <button className="aa-resync-btn" onClick={fetchAndCacheAAs} disabled={aaLoading}>
+                {aaLoading ? 'Syncing…' : '↻ Re-sync AAs'}
+              </button>
+            </div>
           </div>
 
           <div className="planner-aa-list">
@@ -1221,7 +1227,15 @@ function App() {
           {focusedPlannerCharacter && (
             <div className="planner-focus-banner">
               <strong>🎯 Planner Focus Active:</strong> Showing required tomes for <span>{focusedPlannerCharacter}</span>'s plan.
-              <button onClick={() => setFocusedPlannerCharacter(null)}>Clear Focus</button>
+              <div className="planner-focus-banner-actions">
+                <div className="aa-sync-info">
+                  {aaLastSynced && <span className="aa-sync-label">Synced {formatRelativeTime(aaLastSynced)}</span>}
+                  <button className="aa-resync-btn" onClick={fetchAndCacheAAs} disabled={aaLoading}>
+                    {aaLoading ? 'Syncing…' : '↻ Re-sync AAs'}
+                  </button>
+                </div>
+                <button onClick={() => setFocusedPlannerCharacter(null)}>Clear Focus</button>
+              </div>
             </div>
           )}
 
