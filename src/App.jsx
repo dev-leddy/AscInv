@@ -315,7 +315,12 @@ function AAPickerModal({ abilities, selectedAAs, onToggleAA, onClose, lastSynced
     return abilities.filter(a => {
       if (filterClass && !a.originalClassNames.includes(filterClass)) return false
       if (filterGrade && a.tierName !== filterGrade) return false
-      if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false
+      if (search) {
+        const q = search.toLowerCase()
+        const matchesName = a.name.toLowerCase().includes(q)
+        const matchesDesc = a.description && a.description.toLowerCase().includes(q)
+        if (!matchesName && !matchesDesc) return false
+      }
       return true
     })
   }, [abilities, filterClass, filterGrade, search])
