@@ -72,9 +72,9 @@ function extractItems(character) {
       ? container.name : null
 
     if (containerName) {
-      items.push({ name: containerName, location: `${containerSlot} (${containerName})`, icon: container.icon, itemId: container.itemId, qty: container.charges || 1 })
+      items.push({ name: containerName, location: `${containerSlot} (${containerName})`, icon: container.icon, itemId: container.itemId, qty: container.charges || 1, isContainer: true })
     } else if (isBank && container.name && container.name !== 'Backpack' && container.name !== 'Backpack*') {
-      items.push({ name: container.name, location: containerSlot, icon: container.icon, itemId: container.itemId, qty: container.charges || 1 })
+      items.push({ name: container.name, location: containerSlot, icon: container.icon, itemId: container.itemId, qty: container.charges || 1, isContainer: true })
     }
 
     if (container.contents) {
@@ -1280,7 +1280,7 @@ function App() {
     characters.filter(c => c.data && visibleCharacters.has(c.name)).forEach(c => {
       extractItems(c.data).forEach(item => {
         if (!byItem.has(item.name)) {
-          byItem.set(item.name, { itemName: item.name, icon: item.icon, itemId: item.itemId, totalQty: 0, owners: new Map() })
+          byItem.set(item.name, { itemName: item.name, icon: item.icon, itemId: item.itemId, totalQty: 0, owners: new Map(), isContainer: !!item.isContainer })
         }
         const row = byItem.get(item.name)
         row.totalQty += item.qty
@@ -1293,6 +1293,7 @@ function App() {
     return Array.from(byItem.values()).map(row => ({
       itemName: row.itemName, icon: row.icon, itemId: row.itemId,
       totalQty: row.totalQty, owners: Array.from(row.owners.values()),
+      isContainer: row.isContainer,
     }))
   }, [characters, visibleCharacters])
 
@@ -1315,7 +1316,7 @@ function App() {
       }).filter(Boolean)
     }
 
-    if (!tomeMode) return allRows
+    if (!tomeMode) return allRows.filter(row => !isTome(row.itemName) && !row.isContainer)
 
     return allRows.filter(row => {
       if (!isTome(row.itemName)) return false
