@@ -380,6 +380,16 @@ function AAPickerModal({ abilities, selectedAAs, onToggleAA, onClose, lastSynced
                   <span className={`aa-grade-tag grade-${a.tierName.toLowerCase()}`}>{a.tierName}</span>
                   {a.originalClassNames.join(', ')}
                 </span>
+                {a.description && <span className="aa-row-desc">{a.description}</span>}
+                {a.effectSummary && a.effectSummary.length > 0 && (
+                  <div className="aa-row-effects">
+                    {a.effectSummary.map((e, i) => (
+                      <span key={i} className="aa-row-effect">
+                        {e.effectDesc}{e.range ? <span className="aa-row-effect-range"> {e.range}</span> : null}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}

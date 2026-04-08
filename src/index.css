@@ -497,6 +497,31 @@ button:disabled {
   color: var(--text);
 }
 
+.aa-row-desc {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
+.aa-row-effects {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 3px;
+}
+
+.aa-row-effect {
+  font-size: 10px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.aa-row-effect-range {
+  color: #a78bfa;
+  font-weight: 600;
+}
+
 .aa-grade-tag {
   padding: 1px 6px;
   border-radius: 4px;
