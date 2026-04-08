@@ -663,6 +663,42 @@ function FilterToolbar({
   )
 }
 
+// ── AA chip with hover tooltip ───────────────────────────────────────────────
+function AAChip({ ability }) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <span
+      className="aa-chip"
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+      onClick={e => { e.stopPropagation(); setVisible(v => !v) }}
+    >
+      <span className={`aa-chip-grade grade-${ability.tierName.toLowerCase()}`}>
+        {ability.tierName[0]}
+      </span>
+      {ability.name}
+      {visible && (
+        <span className="aa-chip-tooltip" onClick={e => e.stopPropagation()}>
+          <span className="aa-chip-tooltip-name">{ability.name}</span>
+          {ability.description && (
+            <span className="aa-chip-tooltip-desc">{ability.description}</span>
+          )}
+          {ability.effectSummary && ability.effectSummary.length > 0 && (
+            <span className="aa-chip-tooltip-effects">
+              {ability.effectSummary.map((ef, i) => (
+                <span key={i} className="aa-chip-tooltip-effect">
+                  {ef.effectDesc}
+                  {ef.range && <span className="aa-chip-tooltip-range"> {ef.range}</span>}
+                </span>
+              ))}
+            </span>
+          )}
+        </span>
+      )}
+    </span>
+  )
+}
+
 // ── Table column definition ──────────────────────────────────────────────────
 function makeColumns(onItemClick, isPlannerMode) {
   const columnHelper = createColumnHelper()
@@ -682,16 +718,26 @@ function makeColumns(onItemClick, isPlannerMode) {
     columnHelper.accessor('itemName', {
       header: 'Item',
       size: 320,
-      cell: info => (
-        <div className="item-name-cell">
-          {info.row.original.icon && (
-            <img src={`${ICON_BASE}${info.row.original.icon}.png`} alt="" className="item-icon" />
-          )}
-          <button className="item-name-btn" onClick={(e) => { e.stopPropagation(); onItemClick(info.row.original.itemId); }}>
-            {info.getValue()}
-          </button>
-        </div>
-      ),
+      cell: info => {
+        const { icon, itemId, abilities } = info.row.original
+        return (
+          <div className="item-name-cell">
+            {icon && (
+              <img src={`${ICON_BASE}${icon}.png`} alt="" className="item-icon" />
+            )}
+            <div className="item-name-col">
+              <button className="item-name-btn" onClick={(e) => { e.stopPropagation(); onItemClick(itemId); }}>
+                {info.getValue()}
+              </button>
+              {isPlannerMode && abilities && abilities.length > 0 && (
+                <div className="aa-chips">
+                  {abilities.map(a => <AAChip key={a.universalId} ability={a} />)}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      },
     })
   ]
 
@@ -1074,10 +1120,15 @@ function App() {
       // Planner focus mode
       return allRows.map(row => {
         if (!isTome(row.itemName)) return null
-        const key = `${getTomeGrade(row.itemName)}|${getTomeClass(row.itemName)}`
+        const grade = getTomeGrade(row.itemName)
+        const cls   = getTomeClass(row.itemName)
+        const key   = `${grade}|${cls}`
         if (!focusedPlannerTomes.has(key)) return null
         const needed = focusedPlannerTomes.get(key)
-        return { ...row, neededQty: needed, deficitQty: Math.max(0, needed - row.totalQty) }
+        const abilities = aaAbilities.filter(a =>
+          a.tierName === grade && a.originalClassNames.includes(cls)
+        )
+        return { ...row, neededQty: needed, deficitQty: Math.max(0, needed - row.totalQty), abilities }
       }).filter(Boolean)
     }
 
@@ -1104,7 +1155,7 @@ function App() {
       }
       return true
     })
-  }, [allRows, tomeMode, selectedClasses, selectedGrades, requiredTomeKeys, focusedPlannerTomes])
+  }, [allRows, tomeMode, selectedClasses, selectedGrades, requiredTomeKeys, focusedPlannerTomes, aaAbilities])
 
   const hasData = characters.some(c => c.data)
 
