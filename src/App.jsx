@@ -93,7 +93,8 @@ function extractItems(character) {
             : containerName
               ? `${containerSlot} (${containerName}), Slot ${bagSlot}`
               : `${containerSlot}, Slot ${bagSlot}`
-          items.push({ name: item.name, location: loc, icon: item.icon, itemId: item.itemId, qty: item.charges || 1 })
+          const qty = item.stacksize > 1 ? item.stacksize : (item.charges > 0 && item.charges <= 1000 ? item.charges : 1)
+          items.push({ name: item.name, location: loc, icon: item.icon, itemId: item.itemId, qty })
         }
       })
     }
