@@ -1371,24 +1371,36 @@ function App() {
           const isVisible = visibleCharacters.has(c.name)
           const age = c.fetchedAt ? formatRelativeTime(c.fetchedAt) : null
           return (
-            <div key={c.name} className={`pill ${c.loading ? 'loading' : ''} ${c.error ? 'error' : ''} ${!isVisible ? 'hidden' : ''}`}>
+            <div
+              key={c.name}
+              className={`pill ${c.loading ? 'loading' : ''} ${c.error ? 'error' : ''} ${!isVisible ? 'hidden' : ''}`}
+              onClick={() => handleToggleCharacterVisible(c.name)}
+              title={isVisible ? 'Click to hide' : 'Click to show'}
+            >
               <div className="pill-top">
                 {c.loading && <span className="loading-spinner" />}
-                <span className="pill-name" onClick={() => handleToggleCharacterVisible(c.name)} title={isVisible ? 'Click to hide' : 'Click to show'}>
+                <span className="pill-name">
                   {c.error ? `${c.name} (Error)` : c.name}
                 </span>
-                <button className="pill-remove-btn" onClick={() => removeCharacter(c.name)}>×</button>
+                <button className="pill-remove-btn" onClick={e => { e.stopPropagation(); removeCharacter(c.name) }}>×</button>
               </div>
               <div className="pill-bottom">
                 {tomeMode && (
                   <>
-                    <button className="pill-plan-btn" onClick={() => setPlanningCharacter(c.name)} title="Edit AA Plan">📝</button>
-                    <button className="pill-focus-btn" onClick={() => setFocusedPlannerCharacter(focusedPlannerCharacter === c.name ? null : c.name)} title={focusedPlannerCharacter === c.name ? 'Clear focus' : 'Focus plan'}>
+                    <button className="pill-plan-btn" onClick={e => { e.stopPropagation(); setPlanningCharacter(c.name) }} title="Edit AA Plan">📝</button>
+                    <button className="pill-focus-btn" onClick={e => { e.stopPropagation(); setFocusedPlannerCharacter(focusedPlannerCharacter === c.name ? null : c.name) }} title={focusedPlannerCharacter === c.name ? 'Clear focus' : 'Focus plan'}>
                       {focusedPlannerCharacter === c.name ? '🎯' : '⭕'}
                     </button>
                   </>
                 )}
-                {age && <span className="pill-age">{age}</span>}
+                <div className="pill-age-block">
+                  {c.loading
+                    ? <span className="pill-age-syncing">syncing…</span>
+                    : age
+                      ? <><span className="pill-age-dot" /><span className="pill-age-text">{age}</span></>
+                      : <span className="pill-age-never">no data</span>
+                  }
+                </div>
               </div>
             </div>
           )

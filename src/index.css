@@ -159,13 +159,25 @@ button:disabled {
   border-radius: 10px;
   color: var(--text-h);
   font-size: 13px;
-  min-width: 100px;
-  transition: opacity 0.15s, border-color 0.15s;
+  min-width: 110px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.pill:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  filter: none;
 }
 
 .pill.hidden {
-  opacity: 0.35;
+  opacity: 0.38;
   border-style: dashed;
+}
+
+.pill.hidden:hover {
+  opacity: 0.7;
 }
 
 .pill-top {
@@ -177,12 +189,6 @@ button:disabled {
 .pill-name {
   flex: 1;
   font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-}
-
-.pill-name:hover {
-  color: var(--accent);
 }
 
 .pill-bottom {
@@ -191,11 +197,37 @@ button:disabled {
   gap: 4px;
 }
 
-.pill-age {
-  font-size: 11px;
-  opacity: 0.45;
+/* Age indicator */
+.pill-age-block {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pill-age-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  flex-shrink: 0;
+}
+
+.pill-age-text {
+  font-size: 10px;
+  opacity: 0.5;
   white-space: nowrap;
+}
+
+.pill-age-syncing {
+  font-size: 10px;
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.pill-age-never {
+  font-size: 10px;
+  opacity: 0.35;
 }
 
 .pill button {
