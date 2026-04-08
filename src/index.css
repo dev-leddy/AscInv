@@ -1145,41 +1145,50 @@ tr.main-row:hover .expand-btn {
 .detail-pill {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-left: 2px solid var(--accent-border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  min-width: 180px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .detail-pill-name {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 7px;
+  letter-spacing: 0.07em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
 }
 
 .detail-pill-loc {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 7px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text);
-  line-height: 1.7;
 }
 
 .detail-pill-qty {
-  color: var(--text-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139,92,246,0.15);
+  color: #a78bfa;
   font-weight: 700;
-  font-size: 13px;
-  min-width: 14px;
-  text-align: right;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.detail-pill-sep {
-  color: var(--border-hover);
-  font-size: 11px;
+.detail-pill-loc-text {
+  color: var(--text);
+  font-size: 12px;
+  opacity: 0.75;
 }
 
 /* ── Pagination ─────────────────────────────────── */

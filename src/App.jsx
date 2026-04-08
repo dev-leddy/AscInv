@@ -967,9 +967,8 @@ function InventoryTable({ rows, onItemClick, itemFilter, onFilteredCountChange, 
                               o.locations.reduce((acc, { loc, qty }) => { acc[loc] = (acc[loc] || 0) + qty; return acc }, {})
                             ).map(([loc, qty], i) => (
                               <div key={i} className="detail-pill-loc">
-                                <span className="detail-pill-qty">{qty}</span>
-                                <span className="detail-pill-sep">|</span>
-                                <span>{loc}</span>
+                                <span className="detail-pill-qty">{qty}x</span>
+                                <span className="detail-pill-loc-text">{loc}</span>
                               </div>
                             ))}
                           </div>
