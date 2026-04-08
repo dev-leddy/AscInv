@@ -527,8 +527,9 @@ function CharacterPlannerModal({
                     <input
                       type="number"
                       min="0"
+                      max={ability.totalRanks}
                       value={pts}
-                      onChange={e => handleChangePoints(ability.universalId, cls, parseInt(e.target.value) || 0)}
+                      onChange={e => handleChangePoints(ability.universalId, cls, Math.min(parseInt(e.target.value) || 0, ability.totalRanks))}
                     />
                     <button className="planner-del-btn" onClick={() => handleDeleteClassRow(ability.universalId, cls)}>×</button>
                   </div>
@@ -1063,15 +1064,17 @@ function App() {
   // Get currently focused planner tomes
   const computeRequiredTomes = (characterName) => {
     const plan = aaPlans[characterName] || {}
-    const tomes = new Map() // 'Grade|ClassName' => total points
+    const tomes = new Map() // 'Grade|ClassName' => total ranks needed
     Object.entries(plan).forEach(([uIdStr, classMap]) => {
       const ability = aaAbilities.find(a => a.universalId === Number(uIdStr))
       if (!ability) return
       const grade = ability.tierName
       Object.entries(classMap).forEach(([cls, pts]) => {
-        if (pts <= 0) return
+        // Cap at totalRanks — guards against stale localStorage with old totalCost values
+        const ranks = Math.min(Math.max(0, pts), ability.totalRanks)
+        if (ranks <= 0) return
         const key = `${grade}|${cls}`
-        tomes.set(key, (tomes.get(key) || 0) + pts)
+        tomes.set(key, (tomes.get(key) || 0) + ranks)
       })
     })
     return tomes
