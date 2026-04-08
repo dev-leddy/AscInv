@@ -807,11 +807,10 @@ tr.main-row:hover .expand-btn {
 .aa-chip {
   position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  align-items: stretch;
   font-size: 11px;
   color: #94a3b8;
-  padding: 1px 7px 1px 4px;
+  padding: 0;
   border-radius: 4px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.07);
@@ -819,6 +818,7 @@ tr.main-row:hover .expand-btn {
   user-select: none;
   transition: background 0.12s, color 0.12s;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .aa-chip:hover {
@@ -828,17 +828,24 @@ tr.main-row:hover .expand-btn {
 }
 
 .aa-chip-grade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 9px;
   font-weight: 700;
-  padding: 0px 4px;
-  border-radius: 3px;
+  padding: 0 5px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  align-self: stretch;
 }
 
-.aa-chip-grade.grade-greater   { background: rgba(34,197,94,0.18);  color: #4ade80; }
-.aa-chip-grade.grade-exalted   { background: rgba(234,179,8,0.18);  color: #facc15; }
-.aa-chip-grade.grade-ascendant { background: rgba(139,92,246,0.18); color: #a78bfa; }
+.aa-chip-name {
+  padding: 2px 7px 2px 6px;
+}
+
+.aa-chip-grade.grade-greater   { background: rgba(34,197,94,0.25);  color: #4ade80; }
+.aa-chip-grade.grade-exalted   { background: rgba(234,179,8,0.25);  color: #facc15; }
+.aa-chip-grade.grade-ascendant { background: rgba(139,92,246,0.25); color: #a78bfa; }
 
 /* Tooltip */
 .aa-chip-tooltip {

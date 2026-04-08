@@ -689,7 +689,7 @@ function AAChip({ ability }) {
       <span className={`aa-chip-grade grade-${ability.tierName.toLowerCase()}`}>
         {ability.tierName[0]}
       </span>
-      {ability.name}
+      <span className="aa-chip-name">{ability.name}</span>
       {tipStyle && (
         <span className="aa-chip-tooltip" style={tipStyle} onClick={e => e.stopPropagation()}>
           <span className="aa-chip-tooltip-name">{ability.name}</span>
