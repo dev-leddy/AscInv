@@ -114,6 +114,33 @@ button:disabled {
 }
 
 /* ── Character pills ────────────────────────────── */
+.pills-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.pills-ctrl-btn {
+  padding: 3px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.pills-ctrl-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  filter: none;
+}
+
+.pills-refresh-btn {
+  margin-left: auto;
+}
+
 .pills {
   display: flex;
   gap: 8px;
@@ -124,14 +151,51 @@ button:disabled {
 
 .pill {
   display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 10px 6px 14px;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 9999px;
+  border-radius: 10px;
   color: var(--text-h);
   font-size: 13px;
+  min-width: 100px;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.pill.hidden {
+  opacity: 0.35;
+  border-style: dashed;
+}
+
+.pill-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill-name {
+  flex: 1;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pill-name:hover {
+  color: var(--accent);
+}
+
+.pill-bottom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pill-age {
+  font-size: 11px;
+  opacity: 0.45;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .pill button {
@@ -140,7 +204,7 @@ button:disabled {
   padding: 0;
   width: 18px;
   height: 18px;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -159,6 +223,39 @@ button:disabled {
 .pill.error {
   border-color: #ef4444;
   background: rgba(239, 68, 68, 0.08);
+}
+
+/* ── Mode tabs ──────────────────────────────────── */
+.mode-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+
+.tab-btn {
+  padding: 8px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: color 0.15s;
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-btn:hover:not(.active) {
+  color: var(--text-h);
+  background: var(--accent-bg);
+  filter: none;
 }
 
 

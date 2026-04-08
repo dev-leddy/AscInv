@@ -672,7 +672,7 @@ function CharacterPlannerModal({
 
 // ── Filter toolbar ───────────────────────────────────────────────────────────
 function FilterToolbar({
-  tomeMode, onToggleTomeMode,
+  tomeMode,
   selectedClasses, onToggleClass,
   selectedGrades, onToggleGrade,
   selectedAAs, onOpenAAPickeer, onClearAAs, onRemoveAA,
@@ -682,25 +682,18 @@ function FilterToolbar({
 }) {
   return (
     <div className="filter-toolbar">
-      {/* ── Top row: Tome toggle + grade pills + item search + count ── */}
+      {/* ── Top row: grade pills + item search + count ── */}
       <div className="filter-toolbar-row filter-toolbar-top">
-        <button className={`tome-toggle ${tomeMode ? 'active' : ''}`} onClick={onToggleTomeMode}>
-          Tome Mode
-        </button>
-
         {tomeMode && (
-          <>
-            <div className="filter-divider" />
-            <div className="filter-group">
-              {TOME_GRADES.map(grade => (
-                <button
-                  key={grade}
-                  className={`filter-btn ${selectedGrades.has(grade) ? 'active' : ''}`}
-                  onClick={() => onToggleGrade(grade)}
-                >{grade}</button>
-              ))}
-            </div>
-          </>
+          <div className="filter-group">
+            {TOME_GRADES.map(grade => (
+              <button
+                key={grade}
+                className={`filter-btn ${selectedGrades.has(grade) ? 'active' : ''}`}
+                onClick={() => onToggleGrade(grade)}
+              >{grade}</button>
+            ))}
+          </div>
         )}
 
         <span className="row-count">{totalFiltered} item{totalFiltered !== 1 ? 's' : ''}</span>
@@ -1028,11 +1021,17 @@ function formatRelativeTime(isoString) {
 // ── App ──────────────────────────────────────────────────────────────────────
 function App() {
   const [inputName, setInputName] = useState('')
+  const STALE_MS = 3 * 60 * 1000 // 3 minutes
+
   const [characters, setCharacters] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(LS_KEY) || '[]')
-      return saved.map(name => ({ name, loading: true, error: null, data: null }))
+      return saved.map(name => ({ name, loading: true, error: null, data: null, fetchedAt: null }))
     } catch { return [] }
+  })
+
+  const [visibleCharacters, setVisibleCharacters] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]')) } catch { return new Set() }
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -1114,7 +1113,7 @@ function App() {
       const res = await fetch(`${API_BASE}/${name}`)
       if (!res.ok) throw new Error(res.status === 404 ? 'Character not found' : 'Failed to fetch character')
       const data = await res.json()
-      setCharacters(prev => prev.map(c => c.name === name ? { name, loading: false, error: null, data } : c))
+      setCharacters(prev => prev.map(c => c.name === name ? { name, loading: false, error: null, data, fetchedAt: new Date().toISOString() } : c))
     } catch (err) {
       setCharacters(prev => prev.map(c => c.name === name ? { name, loading: false, error: err.message, data: null } : c))
     }
@@ -1131,13 +1130,41 @@ function App() {
       return
     }
     setLoading(true); setError('')
-    setCharacters(prev => [...prev, { name, loading: true, error: null, data: null }])
+    setCharacters(prev => [...prev, { name, loading: true, error: null, data: null, fetchedAt: null }])
+    setVisibleCharacters(prev => new Set([...prev, name]))
     setInputName('')
     await fetchCharacter(name)
     setLoading(false)
   }
 
-  const removeCharacter = name => setCharacters(prev => prev.filter(c => c.name !== name))
+  const removeCharacter = name => {
+    setCharacters(prev => prev.filter(c => c.name !== name))
+    setVisibleCharacters(prev => { const s = new Set(prev); s.delete(name); return s })
+  }
+
+  const handleToggleCharacterVisible = name => {
+    setVisibleCharacters(prev => {
+      const s = new Set(prev)
+      if (s.has(name)) {
+        s.delete(name)
+      } else {
+        s.add(name)
+        // Auto-refresh if data is stale or missing
+        const char = characters.find(c => c.name === name)
+        if (char && !char.loading && (!char.fetchedAt || Date.now() - new Date(char.fetchedAt).getTime() > STALE_MS)) {
+          fetchCharacter(name)
+        }
+      }
+      return s
+    })
+  }
+
+  const handleShowAllCharacters = () => setVisibleCharacters(new Set(characters.map(c => c.name)))
+  const handleHideAllCharacters = () => setVisibleCharacters(new Set())
+
+  const handleRefreshVisible = () => {
+    characters.filter(c => visibleCharacters.has(c.name)).forEach(c => fetchCharacter(c.name))
+  }
 
   const toggleClass = abbr => setSelectedClasses(prev => { const s = new Set(prev); s.has(abbr) ? s.delete(abbr) : s.add(abbr); return s })
   const toggleGrade = grade => setSelectedGrades(prev => { const s = new Set(prev); s.has(grade) ? s.delete(grade) : s.add(grade); return s })
@@ -1250,7 +1277,7 @@ function App() {
 
   const allRows = useMemo(() => {
     const byItem = new Map()
-    characters.filter(c => c.data).forEach(c => {
+    characters.filter(c => c.data && visibleCharacters.has(c.name)).forEach(c => {
       extractItems(c.data).forEach(item => {
         if (!byItem.has(item.name)) {
           byItem.set(item.name, { itemName: item.name, icon: item.icon, itemId: item.itemId, totalQty: 0, owners: new Map() })
@@ -1267,7 +1294,7 @@ function App() {
       itemName: row.itemName, icon: row.icon, itemId: row.itemId,
       totalQty: row.totalQty, owners: Array.from(row.owners.values()),
     }))
-  }, [characters])
+  }, [characters, visibleCharacters])
 
   const tableRows = useMemo(() => {
     if (focusedPlannerTomes) {
@@ -1331,18 +1358,41 @@ function App() {
 
       {error && <div className="error-message">{error}</div>}
 
+      {characters.length > 0 && (
+        <div className="pills-header">
+          <button className="pills-ctrl-btn" onClick={handleShowAllCharacters}>All</button>
+          <button className="pills-ctrl-btn" onClick={handleHideAllCharacters}>None</button>
+          <button className="pills-ctrl-btn pills-refresh-btn" onClick={handleRefreshVisible}>↻ Refresh Visible</button>
+        </div>
+      )}
+
       <div className="pills">
-        {characters.map(c => (
-          <div key={c.name} className={`pill ${c.loading ? 'loading' : ''} ${c.error ? 'error' : ''}`}>
-            {c.loading && <span className="loading-spinner" />}
-            {c.error ? `${c.name} (Error)` : c.name}
-            <button className="pill-plan-btn" onClick={() => setPlanningCharacter(c.name)} title="Edit AA Plan">📝</button>
-            <button className="pill-focus-btn" onClick={() => setFocusedPlannerCharacter(focusedPlannerCharacter === c.name ? null : c.name)} title={focusedPlannerCharacter === c.name ? "Turn off Planner Focus" : "Focus this Plan on main table"}>
-              {focusedPlannerCharacter === c.name ? '🎯' : '⭕'}
-            </button>
-            <button className="pill-remove-btn" onClick={() => removeCharacter(c.name)}>×</button>
-          </div>
-        ))}
+        {characters.map(c => {
+          const isVisible = visibleCharacters.has(c.name)
+          const age = c.fetchedAt ? formatRelativeTime(c.fetchedAt) : null
+          return (
+            <div key={c.name} className={`pill ${c.loading ? 'loading' : ''} ${c.error ? 'error' : ''} ${!isVisible ? 'hidden' : ''}`}>
+              <div className="pill-top">
+                {c.loading && <span className="loading-spinner" />}
+                <span className="pill-name" onClick={() => handleToggleCharacterVisible(c.name)} title={isVisible ? 'Click to hide' : 'Click to show'}>
+                  {c.error ? `${c.name} (Error)` : c.name}
+                </span>
+                <button className="pill-remove-btn" onClick={() => removeCharacter(c.name)}>×</button>
+              </div>
+              <div className="pill-bottom">
+                {tomeMode && (
+                  <>
+                    <button className="pill-plan-btn" onClick={() => setPlanningCharacter(c.name)} title="Edit AA Plan">📝</button>
+                    <button className="pill-focus-btn" onClick={() => setFocusedPlannerCharacter(focusedPlannerCharacter === c.name ? null : c.name)} title={focusedPlannerCharacter === c.name ? 'Clear focus' : 'Focus plan'}>
+                      {focusedPlannerCharacter === c.name ? '🎯' : '⭕'}
+                    </button>
+                  </>
+                )}
+                {age && <span className="pill-age">{age}</span>}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {characters.length === 0 && <div className="empty-state"><p>Enter character names above to track their inventory</p></div>}
@@ -1350,6 +1400,15 @@ function App() {
 
       {hasData && (
         <>
+          <div className="mode-tabs">
+            <button className={`tab-btn ${!tomeMode ? 'active' : ''}`} onClick={() => { if (tomeMode) handleToggleTomeMode() }}>
+              📦 Inventory
+            </button>
+            <button className={`tab-btn ${tomeMode ? 'active' : ''}`} onClick={() => { if (!tomeMode) handleToggleTomeMode() }}>
+              📖 Tomes
+            </button>
+          </div>
+
           {focusedPlannerCharacter && (
             <div className="planner-focus-banner">
               <strong>🎯 Planner Focus Active:</strong> Showing required tomes for <span>{focusedPlannerCharacter}</span>'s plan.
@@ -1361,7 +1420,7 @@ function App() {
 
           {!focusedPlannerCharacter && (
             <FilterToolbar
-              tomeMode={tomeMode}         onToggleTomeMode={handleToggleTomeMode}
+              tomeMode={tomeMode}
               selectedClasses={selectedClasses} onToggleClass={toggleClass}
               selectedGrades={selectedGrades}   onToggleGrade={toggleGrade}
               selectedAAs={selectedAAObjects}
