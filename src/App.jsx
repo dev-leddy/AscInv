@@ -981,6 +981,31 @@ function App() {
     localStorage.setItem(LS_AA_PLANS_KEY, JSON.stringify(aaPlans))
   }, [aaPlans])
 
+  // Migrate stale plan pts: cap any value exceeding ability.totalRanks (old data used totalCost)
+  useEffect(() => {
+    if (aaAbilities.length === 0) return
+    setAaPlans(prev => {
+      let changed = false
+      const next = {}
+      Object.entries(prev).forEach(([charName, plan]) => {
+        const nextPlan = {}
+        Object.entries(plan).forEach(([uIdStr, classMap]) => {
+          const ability = aaAbilities.find(a => a.universalId === Number(uIdStr))
+          if (!ability) { nextPlan[uIdStr] = classMap; return }
+          const nextMap = {}
+          Object.entries(classMap).forEach(([cls, pts]) => {
+            const capped = Math.min(pts, ability.totalRanks)
+            if (capped !== pts) changed = true
+            nextMap[cls] = capped
+          })
+          nextPlan[uIdStr] = nextMap
+        })
+        next[charName] = nextPlan
+      })
+      return changed ? next : prev
+    })
+  }, [aaAbilities])
+
   // On mount, fetch data for any restored characters (ref guard prevents StrictMode double-fire)
   const didFetchOnMount = useRef(false)
   useEffect(() => {
