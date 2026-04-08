@@ -1317,7 +1317,14 @@ function App() {
       }).filter(Boolean)
     }
 
-    if (!tomeMode) return allRows.filter(row => !isTome(row.itemName) && !row.isContainer)
+    if (!tomeMode) {
+      const PINNED = ['Shard of Ascendant Power', 'Mark of Ascendance']
+      const filtered = allRows.filter(row => !isTome(row.itemName) && !row.isContainer)
+      return [
+        ...filtered.filter(r => PINNED.includes(r.itemName)).sort((a, b) => PINNED.indexOf(a.itemName) - PINNED.indexOf(b.itemName)),
+        ...filtered.filter(r => !PINNED.includes(r.itemName)),
+      ]
+    }
 
     return allRows.filter(row => {
       if (!isTome(row.itemName)) return false
