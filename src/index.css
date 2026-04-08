@@ -1443,10 +1443,6 @@ tr.main-row:hover .expand-btn {
   gap: 10px;
 }
 
-.planner-sync {
-  border-right: 1px solid var(--border);
-  padding-right: 10px;
-}
 
 .planner-focus-banner button {
   background: var(--bg);

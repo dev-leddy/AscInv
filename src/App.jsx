@@ -419,7 +419,7 @@ function AAPickerModal({ abilities, selectedAAs, onToggleAA, onClose, lastSynced
 
 // ── Character Planner Modal ──────────────────────────────────────────────────
 function CharacterPlannerModal({
-  characterName, aaPlans, setAaPlans, aaAbilities, aaLoading, fetchAndCacheAAs, aaLastSynced, onClose, focusedPlannerTomes
+  characterName, characterClassName, aaPlans, setAaPlans, aaAbilities, aaLoading, fetchAndCacheAAs, aaLastSynced, onClose, focusedPlannerTomes
 }) {
   const [showPicker, setShowPicker] = useState(false)
 
@@ -443,9 +443,12 @@ function CharacterPlannerModal({
         delete newPlan[ability.universalId]
         return { ...prev, [characterName]: newPlan }
       } else {
-        // Add it with default points for each class
+        // Add only for the character's own class (if known and eligible), else all classes
+        const eligibleClasses = characterClassName && ability.originalClassNames.includes(characterClassName)
+          ? [characterClassName]
+          : ability.originalClassNames
         const classRanks = {}
-        ability.originalClassNames.forEach(c => classRanks[c] = ability.totalRanks)
+        eligibleClasses.forEach(c => classRanks[c] = ability.totalRanks)
         return { ...prev, [characterName]: { ...charPlan, [ability.universalId]: classRanks } }
       }
     })
@@ -511,12 +514,6 @@ function CharacterPlannerModal({
               {aaLoading ? 'Loading AAs…' : '+ Add Abilities to Plan'}
             </button>
             <span className="planner-hint">Abilities stack per-class on Ascendant</span>
-            <div className="aa-sync-info planner-sync">
-              {aaLastSynced && <span className="aa-sync-label">Synced {formatRelativeTime(aaLastSynced)}</span>}
-              <button className="aa-resync-btn" onClick={fetchAndCacheAAs} disabled={aaLoading}>
-                {aaLoading ? 'Syncing…' : '↻ Re-sync AAs'}
-              </button>
-            </div>
           </div>
 
           <div className="planner-aa-list">
@@ -558,6 +555,16 @@ function CharacterPlannerModal({
                 )
               })}
             </div>
+          </div>
+
+          <div className="aa-picker-footer">
+            <div className="aa-sync-info">
+              {aaLastSynced && <span className="aa-sync-label">Synced {formatRelativeTime(aaLastSynced)}</span>}
+              <button className="aa-resync-btn" onClick={fetchAndCacheAAs} disabled={aaLoading}>
+                {aaLoading ? 'Syncing…' : '↻ Re-sync AAs'}
+              </button>
+            </div>
+            <button className="aa-done-btn" onClick={onClose}>Done</button>
           </div>
         </div>
       </div>
@@ -1228,12 +1235,6 @@ function App() {
             <div className="planner-focus-banner">
               <strong>🎯 Planner Focus Active:</strong> Showing required tomes for <span>{focusedPlannerCharacter}</span>'s plan.
               <div className="planner-focus-banner-actions">
-                <div className="aa-sync-info">
-                  {aaLastSynced && <span className="aa-sync-label">Synced {formatRelativeTime(aaLastSynced)}</span>}
-                  <button className="aa-resync-btn" onClick={fetchAndCacheAAs} disabled={aaLoading}>
-                    {aaLoading ? 'Syncing…' : '↻ Re-sync AAs'}
-                  </button>
-                </div>
                 <button onClick={() => setFocusedPlannerCharacter(null)}>Clear Focus</button>
               </div>
             </div>
@@ -1283,6 +1284,7 @@ function App() {
       {planningCharacter && (
         <CharacterPlannerModal
           characterName={planningCharacter}
+          characterClassName={characters.find(c => c.name === planningCharacter)?.data?.className ?? null}
           aaPlans={aaPlans}
           setAaPlans={setAaPlans}
           aaAbilities={aaAbilities}
