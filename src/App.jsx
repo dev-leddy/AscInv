@@ -1069,6 +1069,12 @@ function App() {
     return computeRequiredTomes(focusedPlannerCharacter)
   }, [focusedPlannerCharacter, aaPlans, aaAbilities])
 
+  const focusedPlannerAbilityIds = useMemo(() => {
+    if (!focusedPlannerCharacter) return null
+    const plan = aaPlans[focusedPlannerCharacter] || {}
+    return new Set(Object.keys(plan).map(Number))
+  }, [focusedPlannerCharacter, aaPlans])
+
   // Get planning modal tomes
   const planningModalTomes = useMemo(() => {
     if (!planningCharacter) return new Map()
@@ -1126,7 +1132,9 @@ function App() {
         if (!focusedPlannerTomes.has(key)) return null
         const needed = focusedPlannerTomes.get(key)
         const abilities = aaAbilities.filter(a =>
-          a.tierName === grade && a.originalClassNames.includes(cls)
+          a.tierName === grade &&
+          a.originalClassNames.includes(cls) &&
+          focusedPlannerAbilityIds.has(a.universalId)
         )
         return { ...row, neededQty: needed, deficitQty: Math.max(0, needed - row.totalQty), abilities }
       }).filter(Boolean)
@@ -1155,7 +1163,7 @@ function App() {
       }
       return true
     })
-  }, [allRows, tomeMode, selectedClasses, selectedGrades, requiredTomeKeys, focusedPlannerTomes, aaAbilities])
+  }, [allRows, tomeMode, selectedClasses, selectedGrades, requiredTomeKeys, focusedPlannerTomes, aaAbilities, focusedPlannerAbilityIds])
 
   const hasData = characters.some(c => c.data)
 
