@@ -445,7 +445,7 @@ function CharacterPlannerModal({
       } else {
         // Add it with default points for each class
         const classRanks = {}
-        ability.originalClassNames.forEach(c => classRanks[c] = ability.totalCost)
+        ability.originalClassNames.forEach(c => classRanks[c] = ability.totalRanks)
         return { ...prev, [characterName]: { ...charPlan, [ability.universalId]: classRanks } }
       }
     })
